@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文字化け体験アプリ</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+      background-color: #f5f5f5;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    .input-block,
+    .select-block,
+    .button-block,
+    .result-block,
+    .explanation-block {
+      margin-bottom: 20px;
+    }
+
+    textarea {
+      width: 90%;
+      max-width: 500px;
+      height: 80px;
+      font-size: 16px;
+      padding: 10px;
+    }
+
+    select {
+      padding: 5px;
+      font-size: 16px;
+      width: 150px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 5px;
+      cursor: pointer;
+    }
+
+    #output {
+      font-size: 18px;
+      white-space: pre-wrap;
+      background-color: #fff;
+      padding: 10px;
+      border: 1px solid #ccc;
+      width: 90%;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    #explanation {
+      display: none;
+      text-align: left;
+      margin: 0 auto;
+      padding: 10px;
+      background: #e7f2ff;
+      border: 1px solid #a3c4dc;
+      width: 90%;
+      max-width: 500px;
+    }
+
+    .warning {
+      color: red;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
+    .current-encoding {
+      margin-top: 5px;
+      font-size: 14px;
+    }
+
+    /* ? タイマー表示 */
+    #timer {
+      position: fixed;
+      top: 10px;
+      right: 15px;
+      background-color: #222;
+      color: #fff;
+      padding: 6px 12px;
+      font-size: 14px;
+      border-radius: 6px;
+      opacity: 0.85;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="timer">アクティブ時間: 0秒</div>
+
+  <h1>文字化け体験アプリ</h1>
+
+  <!-- 送信者の文字コード -->
+  <div class="select-block">
+    <label for="senderEncoding">送信者の文字コード</label><br>
+    <select id="senderEncoding" onchange="checkEncodingWarning()">
+      <option value="utf-8">UTF-8</option>
+      <option value="shift-jis">Shift_JIS</option>
+      <option value="euc-jp">EUC-JP</option>
+      <option value="iso-8859-1">ISO-8859-1</option>
+      <option value="jis">JIS</option>
+    </select>
+    <div id="encodingWarning" class="warning" style="display:none;">
+      ※この文字コードは日本語に対応していません。日本語は入力できません。
+    </div>
+  </div>
+
+  <!-- 入力欄 -->
+  <div class="input-block">
+    <textarea id="inputText" placeholder="ここに文字を入力してください..."></textarea>
+    <div class="current-encoding">
+      現在の送信者の文字コード: <span id="currentEncoding">UTF-8</span>
+    </div>
+  </div>
+
+  <!-- 受信者の文字コード -->
+  <div class="select-block">
+    <label for="receiverEncoding">受信者の文字コード</label><br>
+    <select id="receiverEncoding">
+      <option value="utf-8">UTF-8</option>
+      <option value="shift-jis">Shift_JIS</option>
+      <option value="euc-jp">EUC-JP</option>
+      <option value="iso-8859-1">ISO-8859-1</option>
+      <option value="jis">JIS</option>
+    </select>
+  </div>
+
+  <!-- 送信ボタン -->
+  <div class="button-block">
+    <button onclick="simulateGarble()">送信してみる</button>
+  </div>
+
+  <!-- 結果表示 -->
+  <div class="result-block">
+    <div id="output"></div>
+  </div>
+
+  <!-- 解説表示 -->
+  <div style="margin-top: 20px;">
+    <button onclick="toggleExplanation()">解説</button>
+  </div>
+
+  <div class="explanation-block" id="explanation">
+    <p><strong>UTF-8:</strong> 現在の標準。多言語対応。日本語も可。</p>
+    <p><strong>Shift_JIS:</strong> 日本語向け。Windows環境でよく使用。</p>
+    <p><strong>EUC-JP:</strong> UNIX系OSで日本語処理によく使われた。</p>
+    <p><strong>ISO-8859-1:</strong> 英語・西欧言語向け。日本語は非対応。</p>
+    <p><strong>JIS:</strong> 通信機器向け（電子メール）。日本語対応だが互換性に注意。</p>
+  </div>
+
+  <!-- スクリプト -->
+  <script>
+    function simulateGarble() {
+      const input = document.getElementById("inputText").value.trim();
+      const sender = document.getElementById("senderEncoding").value;
+      const receiver = document.getElementById("receiverEncoding").value;
+      const output = document.getElementById("output");
+
+      if (input === "") {
+        output.innerText = "";
+        return;
+      }
+
+      if (sender === receiver) {
+        output.innerText = input; // 正しく表示
+      } else {
+        let garbled = "";
+        for (let i = 0; i < input.length; i++) {
+          const code = input.charCodeAt(i);
+          const broken = code % 94 + 33; // 擬似文字化け
+          garbled += String.fromCharCode(broken);
+        }
+        output.innerText = garbled;
+      }
+    }
+
+    function toggleExplanation() {
+      const block = document.getElementById("explanation");
+      block.style.display = (block.style.display === "none") ? "block" : "none";
+    }
+
+    function checkEncodingWarning() {
+      const sender = document.getElementById("senderEncoding").value;
+      const warning = document.getElementById("encodingWarning");
+      const current = document.getElementById("currentEncoding");
+
+      current.innerText = sender;
+
+      if (sender === "iso-8859-1") {
+        warning.style.display = "block";
+      } else {
+        warning.style.display = "none";
+      }
+
+      document.getElementById("inputText").value = "";
+    }
+
+    // 入力制限：日本語禁止（ISO-8859-1選択中）
+    document.getElementById("inputText").addEventListener("input", function () {
+      const sender = document.getElementById("senderEncoding").value;
+      const textarea = document.getElementById("inputText");
+      const value = textarea.value;
+
+      if (sender === "iso-8859-1") {
+        const forbidden = /[\u3040-\u30FF\u4E00-\u9FFF]/g;
+        if (forbidden.test(value)) {
+          alert("ISO-8859-1では日本語を入力できません。日本語は削除されます。");
+          textarea.value = value.replace(forbidden, "");
+        }
+      }
+    });
+
+    // ? ページアクティブ時のみ時間カウント
+    let seconds = 0;
+    let timer = null;
+
+    function startTimer() {
+      if (timer === null) {
+        timer = setInterval(() => {
+          seconds++;
+          document.getElementById("timer").innerText = `アクティブ時間: ${seconds}秒`;
+        }, 1000);
+      }
+    }
+
+    function stopTimer() {
+      clearInterval(timer);
+      timer = null;
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        startTimer();
+      } else {
+        stopTimer();
+      }
+    });
+
+    window.onload = () => {
+      checkEncodingWarning();
+      if (document.visibilityState === "visible") startTimer();
+    };
+  </script>
+
+</body>
+</html>
